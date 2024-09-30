@@ -1,0 +1,145 @@
+---
+title: "EDS_223_week_one_lab"
+format: html
+editor: visual
+---
+
+```{r}
+library(sf) #vector data
+library(stars) #raster data
+library(tmap)
+library(here)
+library(viridisLite)
+```
+
+```{r}
+#raster of global elevation
+world_elevation <- read_stars(here("data", "worldelevation.tif"))
+
+#country boundaries
+world_vector <- read_sf(here("data", "worldvector.gpkg"))
+
+#major cities
+world_cities <- read_sf(here("data", "worldcities.gpkg"))
+
+```
+
+```{r}
+#load the map
+tm_shape(world_elevation) +
+  tm_raster() + 
+  tm_shape(world_vector) + 
+  tm_borders() + 
+  tm_shape(world_cities, is.master = TRUE) + #is.master = TRUE makes this layer the top layer in the map 
+  tm_dots()
+
+
+#another way to define the extent of the layer
+tm_shape(world_elevation, bbox = c(-15, 35, 45, 65)) + #not the most recommended way to define the boudaries with bbox
+  tm_raster() + 
+  tm_shape(world_vector) + 
+  tm_borders() 
+
+
+
+#create a boundary box around a sepcific object 
+tm_shape(world_elevation, bbox = world_cities) + 
+  tm_raster() + 
+  tm_shape(world_vector) + 
+  tm_borders() 
+
+
+```
+
+```{r}
+#maps with customization 
+tm_shape(world_vector) +
+  tm_polygons(col = "lightblue",
+              border.col = "black",
+              lwd = 0.5,
+              lty = "dashed")
+
+#plotting just the border of the world
+tm_shape(world_vector) +
+  tm_borders(col = "red")
+
+#plotting just the fill of the world
+tm_shape(world_vector) +
+  tm_fill(col = "lightblue")
+```
+
+```{r}
+#create a map of CO2 emissions 
+tm_shape(world_vector) +
+  tm_fill("CO2_emissions")
+
+```
+
+```{r}
+#displaying information with color palletes
+tm_shape(world_vector) +
+  tm_polygons("life_expectancy",
+              palette = viridis(option = "magma", 8),
+              title = "Life Expectancy (years)")
+
+#displaying information with size 
+## the size of the points represents the population at that location 
+tm_shape(world_vector) +
+  tm_polygons() +
+  tm_shape(world_cities) +
+  tm_symbols(size = "pop2020",
+             legend.size.is.portrait = TRUE)
+
+```
+
+```{r}
+#add some orientation information by adding grid lines
+tm_shape(world_vector) +
+  tm_fill() +
+  tm_grid()
+
+#another option which converts the unit of minutes into latitude and longitude 
+tm_shape(world_vector) +
+  tm_fill() +
+  tm_graticules()
+
+#if you put graticules before the fill function then the lines will be covered by the map
+tm_shape(world_vector) +
+  tm_graticules() +
+    tm_fill()
+
+
+```
+
+```{r}
+#create a map with a scale bar and a compass for orientation and scale
+tm_shape(world_vector) +
+  tm_fill() +
+  tm_scale_bar() +
+  tm_compass(position = c("left","top"))
+
+```
+
+```{r}
+#create an interactive map
+tmap_mode("view")
+
+##for a static map
+#tmap_mode("plot")
+
+#play around with formatting a map of global income by country
+map1 <- tm_shape(world_vector) +
+  tm_fill(col = "wb_income_region",
+          palette = viridisLite::plasma(5),
+          title = "Regional Income") +
+  tm_layout(bg.color = "grey95",
+            main.title = "Global Income by Country",
+            frame = FALSE)
+
+tmap_save(map1, here("tmap-example.png"))
+
+```
+
+```{r}
+
+```

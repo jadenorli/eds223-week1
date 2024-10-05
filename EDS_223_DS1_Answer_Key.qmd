@@ -1,0 +1,111 @@
+---
+title: "EDS_223_DS1_Answer_Key"
+format: html
+editor: visual
+---
+
+# 1. Create a Static Map of Easter Island
+
+```{r}
+library(here)
+library(tidyverse)
+library(stars)
+library(sf)
+library(tmap)
+library(ggspatial)
+```
+
+```{r}
+# import all data files for Easter Island (3 vectors, 1 raster)
+ei_points <- sf::read_sf(here::here("data", "easter_island", "ei_points.gpkg"))
+volcanoes <- subset(ei_points, type == "volcano")
+ei_elev <- stars::read_stars(here::here("data", "easter_island", "ei_elev.tif"))
+ei_borders <- sf::read_sf(here::here("data", "easter_island", "ei_border.gpkg"))
+ei_roads <- sf::read_sf(here::here("data", "easter_island", "ei_roads.gpkg"))
+```
+
+```{r}
+# first plot the elevation raster
+tm_shape(ei_elev) +
+  tm_raster(style = "cont",                # continuous values for this layer
+            palette = "-RdYlGn",           # reversed red-yellow-green continuous palette
+            title = "Elevation (m asl)") + # legend title with units
+  # add vector: Easter Island vector in default gray
+  tm_shape(ei_borders) +
+    tm_borders() +
+  # add vector: road lines in default black
+  tm_shape(ei_roads) +
+    tm_lines(lwd = "strokelwd", # line width depends on attribute value 
+           legend.lwd.show = FALSE) +
+  # add vector: volcano points in default gray
+  tm_shape(volcanoes) +
+    tm_symbols(shape = 24,                       # triangle
+             size = "elevation",                 # symbol size depends on attribute value 
+             title.size = "Volcanoes (m asl)") + # legend title with units
+  # general map layout options
+  tm_layout(main.title = "Easter Island",
+            bg.color = "lightblue") +            # background color for map (ocean)
+  tm_scale_bar(position = c("left", "bottom")) +
+  tm_compass(show.labels = 1)                    # only show North label on compass
+```
+
+# 2. Create an Interactive Map of Easter Island
+
+```{r}
+# same code as static map above
+ei_map <- tm_shape(ei_elev) +
+  tm_raster(style = "cont",
+            palette = "-RdYlGn",
+            title = "Elevation (m asl)") +
+  tm_shape(ei_borders) + 
+  tm_borders() +
+  tm_shape(ei_roads) + 
+  tm_lines(lwd = "strokelwd", 
+           legend.lwd.show = FALSE) +
+  tm_shape(volcanoes) +
+  tm_symbols(shape = 24, 
+             size = "elevation",
+             title.size = "Volcanoes (m asl)") +
+  tm_layout(main.title = "Easter Island",
+            bg.color = "lightblue") +
+  tm_scale_bar(position = c("left", "bottom")) +
+  tm_compass(show.labels = 1)
+
+# convert default static map to interactive map 
+tmap_mode("view")
+
+ei_map
+```
+
+# 3. Create a Map with ggplot2
+
+```{r}
+# extract lat & long from geom column 
+volcanoes_point <- volcanoes %>%
+  mutate(lon = unlist(map(volcanoes$geom,1)), # longitude = first component (x)
+         lat = unlist(map(volcanoes$geom,2))) # latitude = second component (y)
+
+ggplot() +
+  # first add Easter Isand borders
+  geom_sf(data = ei_borders, color = "#212529") +
+  # add elevation raster
+  geom_stars(data = ei_elev) +
+  scale_fill_distiller(name = "Elevation (m asl)", # legend title with units
+                       palette = "RdYlGn",         # red-yellow-green palette (no need to reverse)
+                       na.value = "lightblue") +  # set NA color (background ocean)
+  # add road vector
+  geom_sf(data = ei_roads, color = "#343a40") +
+  # add volcano vector
+  geom_point(data = volcanoes_point, 
+             aes(x = lon, y = lat, 
+                 size = elevation), # point size depends on attribute value
+             shape = 17,            # triangle
+             color = "#22577a") +
+  scale_size_continuous(name = "Volcanoes (m asl)") +       # legend title with units
+  ggspatial::annotation_north_arrow(location = "br",        # bottom right
+                                    which_north = "true") + # point to north pole
+  ggspatial::annotation_scale(location = "bl",              # bottom left
+                              width_hint = 0.5) +           # proportion of map area the scalebar should occupy
+  labs(title = "Easter Island") +
+  theme_minimal()
+```

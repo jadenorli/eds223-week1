@@ -25,6 +25,8 @@ ei_roads <- sf::read_sf(here::here("data", "easter_island", "ei_roads.gpkg"))
 ```
 
 ```{r}
+tmap_mode("plot")
+
 # first plot the elevation raster
 tm_shape(ei_elev) +
   tm_raster(style = "cont",                # continuous values for this layer
